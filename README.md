@@ -14,7 +14,7 @@ ensuring minimal server performance impact.
 
 # Credits
 
-**Original Plugin Author:** Unknown / Original InfiniteVendingStock
+**Original Plugin Author:** Rustic0 / Original InfiniteVendingStock
 contributor
 
 This version has been **reviewed, fixed, optimized, and enhanced by
