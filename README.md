@@ -1,5 +1,7 @@
 # InfiniteVendingStock
 
+**Current version: 1.3.2**
+
 A lightweight Rust (uMod/Oxide) plugin that makes **NPC vending machines
 behave as if they have infinite stock**.
 
@@ -48,6 +50,11 @@ modern Rust servers.
     instantly after purchases**
 -   Implemented **event-driven updates** instead of heavy looping logic
 -   Added safeguards to avoid conflicts with other vending plugins
+-   Updated the vending transaction hook for the current five-parameter
+    Rust/Oxide API
+-   Updated the stock-refresh hook to use `ItemDefinition`, matching the
+    current Rust/Oxide API
+-   Excluded rentable shop vending machines from automatic stock changes
 
 ------------------------------------------------------------------------
 
@@ -59,6 +66,9 @@ This plugin has been tested to work alongside:
 
 Custom vending machines managed by that plugin are ignored so both
 plugins can safely run together.
+
+Rentable shop vending machines are also ignored so player-operated shop
+inventory is never altered.
 
 Plugin behavior:
 

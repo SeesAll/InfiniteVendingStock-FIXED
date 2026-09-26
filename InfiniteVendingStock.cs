@@ -5,7 +5,7 @@ using Oxide.Core.Plugins;
 
 namespace Oxide.Plugins
 {
-    [Info("Infinite Vending Stock", "Rustic0, Improvements made by SeesAll", "1.3.1")]
+    [Info("Infinite Vending Stock", "Rustic0, Improvements made by SeesAll", "1.3.2")]
     [Description("Keeps stock high for vanilla NPC vending machines without interfering with CustomVendingSetup-managed machines.")]
     public class InfiniteVendingStock : RustPlugin
     {
@@ -43,26 +43,23 @@ namespace Oxide.Plugins
             QueueRefresh(vendingMachine);
         }
 
-        private void OnVendingTransaction(NPCVendingMachine vendingMachine)
+        private void OnVendingTransaction(
+            NPCVendingMachine vendingMachine,
+            BasePlayer buyer,
+            int sellOrderId,
+            int numberOfTransactions,
+            ItemContainer targetContainer)
         {
             QueueRefresh(vendingMachine);
         }
 
-        private void OnRefreshVendingStock(NPCVendingMachine vendingMachine, Item item)
+        private void OnRefreshVendingStock(VendingMachine vendingMachine, ItemDefinition itemDefinition)
         {
-            if (!ShouldManage(vendingMachine))
+            NPCVendingMachine npcVendingMachine = vendingMachine as NPCVendingMachine;
+            if (npcVendingMachine == null)
                 return;
 
-            NextTick(delegate()
-            {
-                if (!ShouldManage(vendingMachine))
-                    return;
-
-                if (item != null)
-                    RaiseItemToTarget(vendingMachine, item);
-
-                QueueRefresh(vendingMachine);
-            });
+            QueueRefresh(npcVendingMachine);
         }
 
         private void QueueRefresh(NPCVendingMachine vendingMachine)
@@ -132,39 +129,6 @@ namespace Oxide.Plugins
             QueueUiUpdate(vendingMachine);
         }
 
-        private void RaiseItemToTarget(NPCVendingMachine vendingMachine, Item item)
-        {
-            if (item == null || item.info == null || vendingMachine == null || vendingMachine.sellOrders == null || vendingMachine.sellOrders.sellOrders == null)
-                return;
-
-            int orderCount = vendingMachine.sellOrders.sellOrders.Count;
-            for (int orderIndex = 0; orderIndex < orderCount; orderIndex++)
-            {
-                ProtoBuf.VendingMachine.SellOrder sellOrder = vendingMachine.sellOrders.sellOrders[orderIndex];
-                if (sellOrder == null)
-                    continue;
-
-                int soldItemId = GetSoldItemId(sellOrder);
-                if (soldItemId == 0)
-                    continue;
-
-                bool isBlueprint = GetSoldIsBlueprint(sellOrder);
-                ulong skinId = GetSoldSkin(sellOrder);
-
-                if (!ItemMatches(item, soldItemId, skinId, isBlueprint))
-                    continue;
-
-                int desiredAmount = GetDesiredBackingAmount(GetSoldAmount(sellOrder));
-                if (desiredAmount > 0 && item.amount < desiredAmount)
-                {
-                    item.amount = desiredAmount;
-                    item.MarkDirty();
-                }
-
-                return;
-            }
-        }
-
         private void QueueUiUpdate(NPCVendingMachine vendingMachine)
         {
             if (!ShouldManage(vendingMachine))
@@ -188,6 +152,9 @@ namespace Oxide.Plugins
         private bool ShouldManage(NPCVendingMachine vendingMachine)
         {
             if (vendingMachine == null || vendingMachine.IsDestroyed)
+                return false;
+
+            if (vendingMachine is RentableShopVendingMachine)
                 return false;
 
             if (CustomVendingSetup == null)
@@ -255,29 +222,6 @@ namespace Oxide.Plugins
             }
 
             return null;
-        }
-
-        private static bool ItemMatches(Item item, int soldItemId, ulong soldSkinId, bool soldAsBlueprint)
-        {
-            if (item == null || item.info == null)
-                return false;
-
-            int backingItemId = soldAsBlueprint && ItemManager.blueprintBaseDef != null
-                ? ItemManager.blueprintBaseDef.itemid
-                : soldItemId;
-
-            int blueprintTarget = soldAsBlueprint ? soldItemId : 0;
-
-            if (item.info.itemid != backingItemId)
-                return false;
-
-            if (item.blueprintTarget != blueprintTarget)
-                return false;
-
-            if (soldSkinId != 0UL && item.skin != soldSkinId)
-                return false;
-
-            return true;
         }
 
         private static int GetSoldItemId(ProtoBuf.VendingMachine.SellOrder sellOrder)
